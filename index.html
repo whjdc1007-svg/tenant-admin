@@ -45,11 +45,10 @@
 
     <!-- 탭 1: 입주기업 관리 -->
     <div id="tab1" class="container tab-content active">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h2 style="margin: 0;">📋 입주기업 목록 및 미납 체크</h2>
-            <button class="action-btn" onclick="downloadExcel()" style="background-color: #10B981; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">📊 엑셀 다운로드</button>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>📋 입주기업 목록 및 미납 체크</h2>
+            <button class="action-btn" onclick="downloadExcel()" style="background-color: #10B981; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">📊 엑셀 다운로드</button>
         </div>
-
         <div class="form-box">
             <div>
                 <label>순번 (No)</label>
@@ -139,7 +138,7 @@
                     <th>확인 상태</th>
                 </tr>
             </thead>
-            <tbody id="excel-table-body">
+            <tbody id="excel-table-body-custom">
                 <tr>
                     <td colspan="4" style="color: #888;">엑셀 파일을 업로드하면 대조 표가 여기에 표시됩니다.</td>
                 </tr>
@@ -148,7 +147,7 @@
     </div>
 
     <script>
-        // Supabase 설정
+        // Supabase 설정 (정상 키 적용)
         const SUPABASE_URL = 'https://cznyqtjxycesmrpupmvj.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6bnF0anh5Y2VzbXJwdXBtdmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjM2MzI1MCJ9'; 
         const { createClient } = supabase;
@@ -172,6 +171,7 @@
             const { data, error } = await _supabase.from('Tenant Company').select('*').order('no', { ascending: true });
             if (error) {
                 console.error('데이터 조회 오류:', error);
+                alert('데이터 조회 중 오류가 발생했습니다: ' + error.message);
                 return;
             }
 
@@ -268,44 +268,7 @@
             }
         }
 
-        // 엑셀 다운로드 기능
-        function downloadExcel() {
-            const table = document.querySelector('#tab1 table');
-            if (!table) {
-                alert('다운로드할 데이터 표가 없습니다.');
-                return;
-            }
-
-            let csv = [];
-            const rows = table.querySelectorAll('tr');
-
-            for (let i = 0; i < rows.length; i++) {
-                let row = [], cols = rows[i].querySelectorAll('td, th');
-                
-                for (let j = 0; j < cols.length; j++) {
-                    let text = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').trim();
-                    const select = cols[j].querySelector('select');
-                    if (select) {
-                        text = select.value;
-                    }
-                    text = text.replace(/"/g, '""');
-                    row.push('"' + text + '"');
-                }
-                csv.push(row.join(','));
-            }
-
-            const csvString = '\uFEFF' + csv.join('\n');
-            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'tenant_list_' + new Date().toISOString().slice(0,10) + '.csv';
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // 엑셀 간소화 대조 기능 (탭 2)
+        // 엑셀 간소화 대조 기능
         function loadExcelData(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -318,7 +281,7 @@
                 const worksheet = workbook.Sheets[firstSheetName];
                 const jsonRows = XLSX.utils.sheet_to_json(worksheet);
 
-                const tbody = document.getElementById('excel-table-body');
+                const tbody = document.getElementById('excel-table-body-custom');
                 tbody.innerHTML = '';
 
                 let validCount = 0;
@@ -347,6 +310,43 @@
         }
 
         window.onload = fetchTenants;
+
+        // 엑셀 다운로드 기능
+        function downloadExcel() {
+            const table = document.querySelector('#tab1 table');
+            if (!table) {
+                alert('다운로드할 데이터 표가 없습니다.');
+                return;
+            }
+
+            let csv = [];
+            const rows = table.querySelectorAll('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll('td, th');
+
+                for (let j = 0; j < cols.length; j++) {
+                    let text = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').trim();
+                    const select = cols[j].querySelector('select');
+                    if (select) {
+                        text = select.value;
+                    }
+                    text = text.replace(/"/g, '""');
+                    row.push('"' + text + '"');
+                }
+                csv.push(row.join(','));
+            }
+
+            const csvString = '\uFEFF' + csv.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'tenant_list_' + new Date().toISOString().slice(0,10) + '.csv';
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 </html>
